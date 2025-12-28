@@ -42,7 +42,8 @@
         color: #fff;
         height: 100vh;
         display: flex;
-        overflow: hidden; /* Prevent body scroll */
+        flex-direction: row;
+        overflow: hidden;
       }
 
       /* --- Left Sidebar (Controls) --- */
@@ -55,6 +56,7 @@
         display: flex;
         flex-direction: column;
         gap: 30px;
+        flex-shrink: 0;
       }
 
       /* --- Middle Content (Search & Results) --- */
@@ -75,8 +77,71 @@
         padding: 30px;
         display: flex;
         flex-direction: column;
+        flex-shrink: 0;
       }
 
+      /* --- RESPONSIVE ADJUSTMENTS --- */
+      @media (max-width: 1200px) {
+        .inspector {
+          width: 280px;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        body {
+          flex-direction: column;
+          height: auto;
+          overflow-y: auto;
+        }
+        aside,
+        .inspector,
+        main {
+          width: 100%;
+          border: none;
+          height: auto;
+          flex-shrink: 1;
+        }
+        aside {
+          border-bottom: 1px solid var(--border);
+        }
+        .inspector {
+          border-top: 1px solid var(--border);
+          max-height: 500px; /* Limit height on mobile */
+        }
+        main {
+          min-height: 600px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        main {
+          padding: 20px;
+        }
+        .search-pill {
+          flex-direction: column;
+          border-radius: 20px;
+          padding: 15px;
+        }
+        .search-pill input {
+          width: 100%;
+          text-align: center;
+          padding: 10px 0;
+        }
+        .search-pill button {
+          width: 100%;
+          margin-top: 10px;
+        }
+        .result-item {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+        .match-badge {
+          align-self: flex-end;
+        }
+      }
+
+      /* --- UI Elements --- */
       .logo-area h1 {
         font-size: 1.5rem;
         font-weight: 800;
@@ -148,7 +213,6 @@
         color: white;
       }
 
-      /* --- Search Area --- */
       .search-container {
         margin-bottom: 30px;
       }
@@ -166,6 +230,8 @@
         margin: 0;
         padding: 10px 20px;
         font-size: 1.1rem;
+        flex: 1;
+        color: white;
       }
       .search-pill button {
         width: auto;
@@ -173,7 +239,6 @@
         padding: 10px 25px;
       }
 
-      /* --- Results & Page List --- */
       .result-item {
         background: var(--card-bg);
         border: 1px solid var(--border);
@@ -184,10 +249,6 @@
         justify-content: space-between;
         align-items: center;
         transition: 0.3s;
-      }
-      .result-item:hover {
-        border-color: var(--primary);
-        transform: translateX(5px);
       }
 
       .page-list {
@@ -234,14 +295,6 @@
           transform: rotate(360deg);
         }
       }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
 
       .status-message {
         font-size: 0.75rem;
@@ -256,14 +309,6 @@
       .status-message.success {
         background: rgba(34, 197, 94, 0.1);
         color: #4ade80;
-      }
-
-      ::-webkit-scrollbar {
-        width: 4px;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: var(--border);
-        border-radius: 10px;
       }
     </style>
   </head>
@@ -301,12 +346,7 @@
             id="query"
             type="text"
             placeholder="🔮 Ask the engine anything..."
-            style="
-              border-color: transparent;
-              outline: none;
-              box-shadow: none;
-              border: none;
-            "
+            style="outline: none; box-shadow: none; border: none"
           />
           <button onclick="runSearch()">Query</button>
         </div>
@@ -341,20 +381,17 @@
     </div>
 
     <script>
-      /* Logic for UI Refresh and API interactions */
       async function fetchIndexes() {
         const res = await fetch("/get-all-embeddings");
         const data = await res.json();
         const select = document.getElementById("indexSelect");
         select.innerHTML = "";
-
         if (!data.indexes || data.indexes.length === 0) {
           select.innerHTML = '<option value="">No scopes found</option>';
           document.getElementById("indexedPages").innerHTML = "";
           document.getElementById("pageCount").innerText = "0 nodes available";
           return;
         }
-
         data.indexes.forEach((idx) => {
           const opt = document.createElement("option");
           opt.value = idx;
@@ -367,12 +404,11 @@
       async function deleteIndex() {
         const idx = document.getElementById("indexSelect").value;
         if (!idx || idx === "" || !confirm(`Delete "${idx}"?`)) return;
-
         const res = await fetch(`/delete-embedding?index_path=${idx}`, {
           method: "DELETE",
         });
         if (res.ok) {
-          fetchIndexes(); // Auto-refresh list
+          fetchIndexes();
           document.getElementById("results").innerHTML =
             '<div style="text-align: center; margin-top: 100px; color: var(--text-muted);"><p>Scope removed.</p></div>';
         }
@@ -383,22 +419,20 @@
         const btn = document.getElementById("crawlBtn");
         const status = document.getElementById("crawlStatus");
         if (!url) return;
-
         btn.disabled = true;
         btn.innerHTML = '<div class="loader"></div>';
         status.className = "status-message show";
-        status.innerText = "Crawling...";
-
+        status.innerText =
+          "⚙️ Crawling and indexing... This may take a few seconds.";
         const res = await fetch("/crawl", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url }),
         });
-
         if (res.ok) {
           status.className = "status-message show success";
           status.innerText = "Indexing Complete";
-          fetchIndexes(); // Auto-refresh list to show new index
+          fetchIndexes();
         }
         btn.disabled = false;
         btn.innerHTML = "🚀 Launch Crawler";
@@ -426,18 +460,15 @@
         const query = document.getElementById("query").value;
         const idx = document.getElementById("indexSelect").value;
         if (!query || !idx) return;
-
         const resultsDiv = document.getElementById("results");
         resultsDiv.innerHTML =
           '<div style="text-align: center; padding: 50px;"><div class="loader" style="width:30px; height:30px; margin: 0 auto; border-width: 2px;"></div></div>';
-
         const res = await fetch(
           `/search?q=${encodeURIComponent(
             query
           )}&index_path=${encodeURIComponent(idx)}`
         );
         const data = await res.json();
-
         resultsDiv.innerHTML =
           data
             .map(
@@ -459,7 +490,6 @@
             )
             .join("") || '<p style="text-align:center;">No results found.</p>';
       }
-
       fetchIndexes();
       document
         .getElementById("query")
