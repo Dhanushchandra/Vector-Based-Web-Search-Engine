@@ -1,88 +1,357 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Vector-Based Web Search Engine</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nexus | Vector Search Engine</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
     <style>
+      :root {
+        --primary: #6366f1;
+        --primary-glow: rgba(99, 102, 241, 0.4);
+        --accent: #a855f7;
+        --bg-dark: #09090b;
+        --card-bg: rgba(24, 24, 27, 0.8);
+        --border: rgba(255, 255, 255, 0.1);
+        --text-muted: #a1a1aa;
+        --danger: #ef4444;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       body {
-        font-family: Arial, sans-serif;
-        margin: 40px;
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background-color: var(--bg-dark);
+        background-image: radial-gradient(
+            circle at 0% 0%,
+            rgba(99, 102, 241, 0.15) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 100% 100%,
+            rgba(168, 85, 247, 0.15) 0%,
+            transparent 50%
+          );
+        color: #fff;
+        height: 100vh;
+        display: flex;
+        overflow: hidden; /* Prevent body scroll */
       }
-      h2 {
-        margin-top: 40px;
+
+      /* --- Left Sidebar (Controls) --- */
+      aside {
+        width: 320px;
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        border-right: 1px solid var(--border);
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
       }
+
+      /* --- Middle Content (Search & Results) --- */
+      main {
+        flex: 1;
+        padding: 40px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* --- Right Sidebar (Inspector) --- */
+      .inspector {
+        width: 350px;
+        background: rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(10px);
+        border-left: 1px solid var(--border);
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .logo-area h1 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        background: linear-gradient(to right, #fff, var(--primary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -1px;
+      }
+
+      .section-label {
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        color: var(--primary);
+        margin-bottom: 15px;
+        display: block;
+      }
+
+      .control-group {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+
       input,
-      select,
+      select {
+        width: 100%;
+        background: #000;
+        border: 1px solid var(--border);
+        padding: 12px;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+      }
+
       button {
-        padding: 6px;
-        margin: 5px 0;
+        width: 100%;
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
       }
-      ul {
-        margin-top: 10px;
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px var(--primary-glow);
       }
-      li {
-        margin-bottom: 5px;
+
+      .delete-btn {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        font-size: 0.8rem;
       }
-      .section {
+
+      .delete-btn:hover {
+        background: var(--danger);
+        color: white;
+      }
+
+      /* --- Search Area --- */
+      .search-container {
         margin-bottom: 30px;
       }
-      .status {
-        font-style: italic;
-        color: green;
+      .search-pill {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        display: flex;
+        padding: 5px 10px;
+        align-items: center;
+      }
+      .search-pill input {
+        border: none;
+        background: transparent;
+        margin: 0;
+        padding: 10px 20px;
+        font-size: 1.1rem;
+      }
+      .search-pill button {
+        width: auto;
+        border-radius: 50px;
+        padding: 10px 25px;
+      }
+
+      /* --- Results & Page List --- */
+      .result-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: 0.3s;
+      }
+      .result-item:hover {
+        border-color: var(--primary);
+        transform: translateX(5px);
+      }
+
+      .page-list {
+        list-style: none;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .page-list li {
+        font-size: 0.8rem;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 6px;
+        margin-bottom: 8px;
+        border: 1px solid transparent;
+      }
+      .page-list li:hover {
+        border-color: var(--primary);
+      }
+      .page-list a {
+        color: #a0d9ff;
+        text-decoration: none;
+        word-break: break-all;
+      }
+
+      .match-badge {
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--primary);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      .loader {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #fff3;
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .status-message {
+        font-size: 0.75rem;
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        display: none;
+      }
+      .status-message.show {
+        display: block;
+      }
+      .status-message.success {
+        background: rgba(34, 197, 94, 0.1);
+        color: #4ade80;
+      }
+
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 10px;
       }
     </style>
   </head>
   <body>
-    <h1>Vector-Based Web Search Engine</h1>
+    <aside>
+      <div class="logo-area">
+        <h1>⚡ Vector Engine</h1>
+        <p>Intelligent Search</p>
+      </div>
 
-    <!-- ================= CRAWL ================= -->
-    <div class="section">
-      <h2>🕷 Crawl Website</h2>
-      <input id="crawlUrl" placeholder="https://example.com" size="50" />
-      <button onclick="crawlSite()">Crawl</button>
-      <p id="crawlStatus" class="status"></p>
-    </div>
+      <div>
+        <span class="section-label">Data Ingestion</span>
+        <div class="control-group">
+          <input id="crawlUrl" type="url" placeholder="https://target.com" />
+          <button onclick="crawlSite()" id="crawlBtn">🚀 Launch Crawler</button>
+          <div id="crawlStatus" class="status-message"></div>
+        </div>
+      </div>
 
-    <hr />
+      <div>
+        <span class="section-label">Memory Scopes</span>
+        <div class="control-group">
+          <select id="indexSelect" onchange="loadIndexedPages()"></select>
+          <button onclick="deleteIndex()" class="delete-btn">
+            🗑️ Delete Scope
+          </button>
+        </div>
+      </div>
+    </aside>
 
-    <!-- ================= INDEX SELECTION ================= -->
-    <div class="section">
-      <h2>📁 Select Index</h2>
-      <select id="indexSelect" onchange="loadIndexedPages()"></select>
-    </div>
+    <main>
+      <div class="search-container">
+        <div class="search-pill">
+          <input
+            id="query"
+            type="text"
+            placeholder="🔮 Ask the engine anything..."
+            style="
+              border-color: transparent;
+              outline: none;
+              box-shadow: none;
+              border: none;
+            "
+          />
+          <button onclick="runSearch()">Query</button>
+        </div>
+      </div>
 
-    <hr />
+      <div id="results">
+        <div
+          style="
+            text-align: center;
+            margin-top: 100px;
+            color: var(--text-muted);
+          "
+        >
+          <p>Neural search results will appear here.</p>
+        </div>
+      </div>
+    </main>
 
-    <!-- ================= INDEXED PAGES ================= -->
-    <div class="section">
-      <h2>📄 Indexed Pages</h2>
-      <p id="pageCount"></p>
-      <ul id="indexedPages"></ul>
-    </div>
-
-    <hr />
-
-    <!-- ================= SEARCH ================= -->
-    <div class="section">
-      <h2>🔍 Search</h2>
-      <input id="query" placeholder="Search..." size="40" />
-      <button onclick="runSearch()">Search</button>
-
-      <ul id="searchResults"></ul>
+    <div class="inspector">
+      <span class="section-label">Scope Inspector</span>
+      <p
+        id="pageCount"
+        style="
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          margin-bottom: 15px;
+        "
+      >
+        0 nodes available
+      </p>
+      <ul id="indexedPages" class="page-list"></ul>
     </div>
 
     <script>
-      /* ---------- Fetch available indexes ---------- */
+      /* Logic for UI Refresh and API interactions */
       async function fetchIndexes() {
         const res = await fetch("/get-all-embeddings");
         const data = await res.json();
-
         const select = document.getElementById("indexSelect");
         select.innerHTML = "";
 
-        if (data.indexes.length === 0) {
-          const opt = document.createElement("option");
-          opt.textContent = "No indexes available";
-          select.appendChild(opt);
+        if (!data.indexes || data.indexes.length === 0) {
+          select.innerHTML = '<option value="">No scopes found</option>';
+          document.getElementById("indexedPages").innerHTML = "";
+          document.getElementById("pageCount").innerText = "0 nodes available";
           return;
         }
 
@@ -92,97 +361,109 @@
           opt.textContent = idx;
           select.appendChild(opt);
         });
-
         loadIndexedPages();
       }
 
-      /* ---------- Crawl website ---------- */
-      async function crawlSite() {
-        const url = document.getElementById("crawlUrl").value;
-        if (!url) return;
+      async function deleteIndex() {
+        const idx = document.getElementById("indexSelect").value;
+        if (!idx || idx === "" || !confirm(`Delete "${idx}"?`)) return;
 
-        const statusEl = document.getElementById("crawlStatus");
-        statusEl.innerText = "Crawling and indexing...";
-
-        let res;
-        try {
-          res = await fetch("/crawl", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url }),
-          });
-        } catch (err) {
-          statusEl.innerText = "Network error. Please try again.";
-          return;
+        const res = await fetch(`/delete-embedding?index_path=${idx}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          fetchIndexes(); // Auto-refresh list
+          document.getElementById("results").innerHTML =
+            '<div style="text-align: center; margin-top: 100px; color: var(--text-muted);"><p>Scope removed.</p></div>';
         }
-
-        const data = await res.json();
-
-        // ❌ Backend error
-        if (!res.ok) {
-          statusEl.innerText = data.error || "Crawling failed.";
-          return;
-        }
-
-        // ⚠️ No indexable pages
-        if (data.pages === 0) {
-          statusEl.innerText =
-            "Crawling completed, but no indexable pages were found.";
-          return;
-        }
-
-        // ✅ Success
-        statusEl.innerText = `Indexed ${data.pages} pages → ${data.index}`;
-        fetchIndexes();
       }
 
-      /* ---------- Load indexed pages ---------- */
+      async function crawlSite() {
+        const url = document.getElementById("crawlUrl").value;
+        const btn = document.getElementById("crawlBtn");
+        const status = document.getElementById("crawlStatus");
+        if (!url) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loader"></div>';
+        status.className = "status-message show";
+        status.innerText = "Crawling...";
+
+        const res = await fetch("/crawl", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+
+        if (res.ok) {
+          status.className = "status-message show success";
+          status.innerText = "Indexing Complete";
+          fetchIndexes(); // Auto-refresh list to show new index
+        }
+        btn.disabled = false;
+        btn.innerHTML = "🚀 Launch Crawler";
+      }
+
       async function loadIndexedPages() {
         const idx = document.getElementById("indexSelect").value;
         if (!idx) return;
-
         const res = await fetch(`/get-embedding-links?index_path=${idx}`);
         const data = await res.json();
-
-        const list = document.getElementById("indexedPages");
-        list.innerHTML = "";
         document.getElementById(
           "pageCount"
-        ).innerText = `Indexed pages: ${data.count}`;
-
-        data.links.forEach((l) => {
-          const li = document.createElement("li");
-          li.innerHTML =
-            l.title != ""
-              ? `<a href="${l.url}" target="_blank">${l.title}</a>`
-              : `<a href="${l.url}" target="_blank">Title Unavailable</a>`;
-          list.appendChild(li);
-        });
+        ).innerText = `${data.count} nodes available`;
+        document.getElementById("indexedPages").innerHTML = data.links
+          .map(
+            (l) =>
+              `<li><a href="${l.url}" target="_blank">${
+                l.title || l.url
+              }</a></li>`
+          )
+          .join("");
       }
 
-      /* ---------- Run semantic search ---------- */
       async function runSearch() {
         const query = document.getElementById("query").value;
         const idx = document.getElementById("indexSelect").value;
         if (!query || !idx) return;
 
-        const res = await fetch(`/search?q=${query}&index_path=${idx}`);
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML =
+          '<div style="text-align: center; padding: 50px;"><div class="loader" style="width:30px; height:30px; margin: 0 auto; border-width: 2px;"></div></div>';
+
+        const res = await fetch(
+          `/search?q=${encodeURIComponent(
+            query
+          )}&index_path=${encodeURIComponent(idx)}`
+        );
         const data = await res.json();
 
-        const list = document.getElementById("searchResults");
-        list.innerHTML = "";
-
-        data.forEach((r) => {
-          const li = document.createElement("li");
-          li.innerHTML = `<a href="${r.url}" target="_blank">${
-            r.title
-          }</a> (score: ${r.score.toFixed(3)})`;
-          list.appendChild(li);
-        });
+        resultsDiv.innerHTML =
+          data
+            .map(
+              (r) => `
+                <div class="result-item">
+                    <div>
+                        <h3>${r.title || "Untitled Node"}</h3>
+                        <a href="${
+                          r.url
+                        }" target="_blank" style="color:var(--text-muted); font-size:0.8rem;">${
+                r.url
+              }</a>
+                    </div>
+                    <div class="match-badge">${(r.score * 100).toFixed(
+                      1
+                    )}% Match</div>
+                </div>
+            `
+            )
+            .join("") || '<p style="text-align:center;">No results found.</p>';
       }
 
-      /* ---------- Init ---------- */
       fetchIndexes();
+      document
+        .getElementById("query")
+        .addEventListener("keypress", (e) => e.key === "Enter" && runSearch());
     </script>
   </body>
 </html>

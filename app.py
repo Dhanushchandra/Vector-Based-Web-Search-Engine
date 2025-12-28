@@ -75,5 +75,33 @@ def get_embedding_links():
 
     return meta_data
 
+@app.route("/delete-embedding", methods=["DELETE"])
+def delete_embedding():
+    index_path = request.args.get("index_path")
+
+    if not index_path:
+        return jsonify({"error": "index_path is required"}), 400
+
+    if not index_path.endswith(".json"):
+        index_path = f"{index_path}.json"
+    print(index_path)
+    full_path = os.path.join("data", index_path)
+
+    if not os.path.exists(full_path):
+        return jsonify({"error": "Index file not found"}), 404
+
+    try:
+        os.remove(full_path)
+    except Exception as e:
+        return jsonify({
+            "error": "Failed to delete index",
+            "details": str(e)
+        }), 500
+
+    return jsonify({
+        "message": "Index deleted successfully",
+        "index": index_path
+    }), 200
+
 if __name__ == "__main__":
     app.run(debug=True)
