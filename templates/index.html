@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Vector-Based Web Search Engine</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+      }
+      h2 {
+        margin-top: 40px;
+      }
+      input,
+      select,
+      button {
+        padding: 6px;
+        margin: 5px 0;
+      }
+      ul {
+        margin-top: 10px;
+      }
+      li {
+        margin-bottom: 5px;
+      }
+      .section {
+        margin-bottom: 30px;
+      }
+      .status {
+        font-style: italic;
+        color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Vector-Based Web Search Engine</h1>
+
+    <!-- ================= CRAWL ================= -->
+    <div class="section">
+      <h2>🕷 Crawl Website</h2>
+      <input id="crawlUrl" placeholder="https://example.com" size="50" />
+      <button onclick="crawlSite()">Crawl</button>
+      <p id="crawlStatus" class="status"></p>
+    </div>
+
+    <hr />
+
+    <!-- ================= INDEX SELECTION ================= -->
+    <div class="section">
+      <h2>📁 Select Index</h2>
+      <select id="indexSelect" onchange="loadIndexedPages()"></select>
+    </div>
+
+    <hr />
+
+    <!-- ================= INDEXED PAGES ================= -->
+    <div class="section">
+      <h2>📄 Indexed Pages</h2>
+      <p id="pageCount"></p>
+      <ul id="indexedPages"></ul>
+    </div>
+
+    <hr />
+
+    <!-- ================= SEARCH ================= -->
+    <div class="section">
+      <h2>🔍 Search</h2>
+      <input id="query" placeholder="Search..." size="40" />
+      <button onclick="runSearch()">Search</button>
+
+      <ul id="searchResults"></ul>
+    </div>
+
+    <script>
+      /* ---------- Fetch available indexes ---------- */
+      async function fetchIndexes() {
+        const res = await fetch("/get-all-embeddings");
+        const data = await res.json();
+
+        const select = document.getElementById("indexSelect");
+        select.innerHTML = "";
+
+        if (data.indexes.length === 0) {
+          const opt = document.createElement("option");
+          opt.textContent = "No indexes available";
+          select.appendChild(opt);
+          return;
+        }
+
+        data.indexes.forEach((idx) => {
+          const opt = document.createElement("option");
+          opt.value = idx;
+          opt.textContent = idx;
+          select.appendChild(opt);
+        });
+
+        loadIndexedPages();
+      }
+
+      /* ---------- Crawl website ---------- */
+      async function crawlSite() {
+        const url = document.getElementById("crawlUrl").value;
+        if (!url) return;
+
+        const statusEl = document.getElementById("crawlStatus");
+        statusEl.innerText = "Crawling and indexing...";
+
+        let res;
+        try {
+          res = await fetch("/crawl", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+        } catch (err) {
+          statusEl.innerText = "Network error. Please try again.";
+          return;
+        }
+
+        const data = await res.json();
+
+        // ❌ Backend error
+        if (!res.ok) {
+          statusEl.innerText = data.error || "Crawling failed.";
+          return;
+        }
+
+        // ⚠️ No indexable pages
+        if (data.pages === 0) {
+          statusEl.innerText =
+            "Crawling completed, but no indexable pages were found.";
+          return;
+        }
+
+        // ✅ Success
+        statusEl.innerText = `Indexed ${data.pages} pages → ${data.index}`;
+        fetchIndexes();
+      }
+
+      /* ---------- Load indexed pages ---------- */
+      async function loadIndexedPages() {
+        const idx = document.getElementById("indexSelect").value;
+        if (!idx) return;
+
+        const res = await fetch(`/get-embedding-links?index_path=${idx}`);
+        const data = await res.json();
+
+        const list = document.getElementById("indexedPages");
+        list.innerHTML = "";
+        document.getElementById(
+          "pageCount"
+        ).innerText = `Indexed pages: ${data.count}`;
+
+        data.links.forEach((l) => {
+          const li = document.createElement("li");
+          li.innerHTML =
+            l.title != ""
+              ? `<a href="${l.url}" target="_blank">${l.title}</a>`
+              : `<a href="${l.url}" target="_blank">Title Unavailable</a>`;
+          list.appendChild(li);
+        });
+      }
+
+      /* ---------- Run semantic search ---------- */
+      async function runSearch() {
+        const query = document.getElementById("query").value;
+        const idx = document.getElementById("indexSelect").value;
+        if (!query || !idx) return;
+
+        const res = await fetch(`/search?q=${query}&index_path=${idx}`);
+        const data = await res.json();
+
+        const list = document.getElementById("searchResults");
+        list.innerHTML = "";
+
+        data.forEach((r) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<a href="${r.url}" target="_blank">${
+            r.title
+          }</a> (score: ${r.score.toFixed(3)})`;
+          list.appendChild(li);
+        });
+      }
+
+      /* ---------- Init ---------- */
+      fetchIndexes();
+    </script>
+  </body>
+</html>

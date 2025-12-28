@@ -1,6 +1,6 @@
 import json
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from crawler.crawl import crawl
 from search.embed import build_embeddings
 from search.semantic_search import search
@@ -9,13 +9,49 @@ from helper.meta_data_functions import get_all_embeddings_names, get_embedding_l
 
 app = Flask(__name__)
 
+@app.route("/")
+def home():
+    return render_template("index.html")
+
 @app.route("/crawl", methods=["POST"])
 def crawl_state():
-    url = request.json.get("url")
-    pages = crawl(url)
+    data = request.get_json()
+
+    if not data or "url" not in data:
+        return jsonify({"error": "url is required"}), 400
+
+    url = data["url"]
+
+    try:
+        pages = crawl(url)
+    except Exception as e:
+        return jsonify({
+            "error": "Crawling failed",
+            "details": str(e)
+        }), 500
+
+    if not pages:
+        return jsonify({
+            "message": "Crawling completed but no indexable pages found",
+            "pages": 0
+        }), 200
+
     index_path = generate_index_path(url)
-    build_embeddings(pages,index_path)
-    return jsonify({"message": "Crawling & indexing completed", "pages": len(pages),"index": index_path},)
+
+    try:
+        build_embeddings(pages, index_path)
+    except Exception as e:
+        return jsonify({
+            "error": "Embedding generation failed",
+            "details": str(e)
+        }), 500
+
+    return jsonify({
+        "message": "Crawling & indexing completed",
+        "pages": len(pages),
+        "index": index_path.split("/")[-1]
+    }), 200
+
 
 @app.route("/search", methods=["GET"])
 def search_query():
