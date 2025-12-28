@@ -1,7 +1,7 @@
 import requests
 import json
 from collections import deque
-from .extract import extract_text_and_links
+from crawler.extract import extract_text_and_links
 from search.embed import build_embeddings
 
 HEADERS = {"User-Agent": "VectorWebSearhBot/1.0"}
@@ -49,10 +49,10 @@ def crawl(seed_url):
     return pages
 
 # --- Execution ---
-seed = "https://en.wikipedia.org/wiki/Main_Page"
-scraped_data = crawl(seed)
+# seed = "https://en.wikipedia.org/wiki/Main_Page"
+# scraped_data = crawl(seed)
 
-build_embeddings(scraped_data)
+# build_embeddings(scraped_data)
 
 # Saving to JSON
 # try:
