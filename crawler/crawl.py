@@ -1,10 +1,13 @@
 import requests
+import json
 from collections import deque
-from extract import extract_text_and_links
+from .extract import extract_text_and_links
+from search.embed import build_embeddings
 
 HEADERS = {"User-Agent": "VectorWebSearhBot/1.0"}
 MAX_PAGES = 20
 MAX_DEPTH = 2
+OUTPUT_FILE = "crawled_pages.json"
 
 def crawl(seed_url):
     visited = set()
@@ -20,7 +23,7 @@ def crawl(seed_url):
             continue
 
         visited.add(url)
-        print(f"Crawling: {url}")
+        print(f"Crawling ({len(pages)+1}/{MAX_PAGES}): {url}")
 
         try:
             res = requests.get(url,headers=HEADERS,timeout=10)
@@ -45,6 +48,18 @@ def crawl(seed_url):
 
     return pages
 
-pages = crawl("https://en.wikipedia.org/wiki/Main_Page")
+# --- Execution ---
+seed = "https://en.wikipedia.org/wiki/Main_Page"
+scraped_data = crawl(seed)
 
-print(pages)
+build_embeddings(scraped_data)
+
+# Saving to JSON
+# try:
+#     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+#         # indent=4 makes the file human-readable
+#         # ensure_ascii=False handles non-English characters correctly
+#         json.dump(scraped_data, f, indent=4, ensure_ascii=False)
+#     print(f"\nSuccessfully saved {len(scraped_data)} pages to {OUTPUT_FILE}")
+# except Exception as e:
+#     print(f"Error saving file: {e}")
