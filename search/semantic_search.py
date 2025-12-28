@@ -27,8 +27,3 @@ def search(query, top_k=2):
         })
 
     return results
-
-
-results = search("car")
-
-print(results)
