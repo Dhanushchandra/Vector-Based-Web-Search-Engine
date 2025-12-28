@@ -5,10 +5,9 @@ from crawler.crawl import crawl
 from search.embed import build_embeddings
 from search.semantic_search import search
 from helper.file_name_generator import generate_index_path
+from helper.meta_data_functions import get_all_embeddings_names, get_embedding_links_and_title
 
 app = Flask(__name__)
-
-DATA_DIR = "data"
 
 @app.route("/crawl", methods=["POST"])
 def crawl_state():
@@ -27,10 +26,7 @@ def search_query():
 
 @app.route("/get-all-embeddings", methods=["GET"])
 def get_all_embeddings():
-    files = [
-        f for f in os.listdir(DATA_DIR)
-        if f.endswith(".json")
-    ]
+    files = get_all_embeddings_names()
 
     return jsonify({
         "indexes": files
@@ -39,30 +35,9 @@ def get_all_embeddings():
 @app.route("/get-embedding-links", methods=["GET"])
 def get_embedding_links():
     index_path = request.args.get("index_path")
+    meta_data = get_embedding_links_and_title(index_path)
 
-    if not index_path:
-        return jsonify({"error": "index_path is required"}), 400
-
-    full_path = os.path.join("data", index_path)
-
-    if not os.path.exists(full_path):
-        return jsonify({"error": "Index file not found"}), 404
-
-    with open(full_path, "r") as f:
-        records = json.load(f)
-
-    links = [
-        {
-            "title": r["title"],
-            "url": r["url"]
-        }
-        for r in records
-    ]
-
-    return jsonify({
-        "count": len(links),
-        "links": links
-    })
+    return meta_data
 
 if __name__ == "__main__":
     app.run(debug=True)
