@@ -2,11 +2,14 @@ import json
 from sentence_transformers import SentenceTransformer
 
 MODEL_NAME = "all-MiniLM-L6-v2"
-DATA_PATH = "data/embeddings.json"
-
 model = SentenceTransformer(MODEL_NAME)
 
-def build_embeddings(pages):
+def generate_index_path(seed_url):
+    domain = urlparse(seed_url).netloc.replace(".", "_")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    return f"data/{domain}_{timestamp}.json"
+
+def build_embeddings(pages, output_path):
     records = []
 
     for page in pages:
@@ -19,7 +22,7 @@ def build_embeddings(pages):
             "embedding": embedding
         })
 
-        with open(DATA_PATH, "w") as f:
+        with open(output_path, "w") as f:
             json.dump(records, f)
 
         print(f"Saved {len(records)} embeddings")

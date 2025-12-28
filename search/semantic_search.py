@@ -3,16 +3,18 @@ import torch
 from sentence_transformers import SentenceTransformer, util
 
 MODEL_NAME = "all-MiniLM-L6-v2"
-DATA_PATH = "data/embeddings.json"
-
 model = SentenceTransformer(MODEL_NAME)
 
-with open(DATA_PATH, "r") as f:
-    records = json.load(f)
+def load_index(index_path):
+    with open(f"data/{index_path}.json", "r") as f:
+        records = json.load(f)
 
-embeddings = torch.tensor([r["embedding"] for r in records])
+    embeddings = torch.tensor([r["embedding"] for r in records])
+    return records, embeddings
 
-def search(query, top_k=2):
+def search(query,index_path, top_k=2):
+    records, embeddings = load_index(index_path)
+
     query_embedding = model.encode(query, convert_to_tensor=True)
     scores = util.cos_sim(query_embedding, embeddings)[0]
 
